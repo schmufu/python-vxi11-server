@@ -48,6 +48,17 @@ class InstrumentDevice(object):
         self.device_name = device_name
         self.lock = device_lock
 
+        # is this a bridged gpib device connected to a bridge interface?
+        self.primary=None
+        self.secondary=None
+        if 'gpib' in device_name:
+            # get primary  and secondary adress
+            adr=device_name.split(",")
+            if len(adr)>2:
+                self.secondary=adr[2]
+            if len(adr)>=1:
+                self.primary=adr[0]
+        
         self.intr_client = None
         self.srq_enabled = False
         self.srq_handle = None
@@ -85,6 +96,16 @@ class InstrumentDevice(object):
         error = vxi11.ERR_NO_ERROR
         stb = 0
 
+        #STB Status Byte Register
+        # 0b_1000_0000 instrument specific
+        # 0b_0100_0000 RQS - request service (send SRQ on rising edge)
+        # 0b_0010_0000 ESB = (ESR >0)
+        # 0b_0001_0000 Message avaliable
+        # 0b_0000_1000 instrument specific 
+        # 0b_0000_0100 Error avaliable
+        # 0b_0000_0010 instrument specific
+        # 0b_0000_0001 instrument specific
+        
         # set bit 6 (of 0..7)  if srq is activated
         if self.srq_active:
             stb |= 0b_0100_0000

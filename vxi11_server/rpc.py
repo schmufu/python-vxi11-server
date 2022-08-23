@@ -591,7 +591,7 @@ class BroadcastUDPClient(Client):
 
 class RPCRequestHandler(socketserver.BaseRequestHandler):
     def __init__(self, request, client_address, server):
-        logger.info('strting new request handler')
+        logger.info('starting new request handler for client %s, request %r',client_address, request)
         self.addpackers()
         self.request = request
         self.client_address = client_address
@@ -614,7 +614,7 @@ class RPCRequestHandler(socketserver.BaseRequestHandler):
                 reply = self.handle_call(call)
                 if reply is not None:
                     sendrecord(self.request, reply)
-            except(EOFError):
+            except(EOFError, ConnectionError):
                 #print 'rpcrequesthandler.handle() got EOF, exiting'
                 break
             
@@ -661,12 +661,14 @@ class RPCRequestHandler(socketserver.BaseRequestHandler):
         try:
             meth = getattr(self, methname)
         except AttributeError:
+            logger.debug("requested procedure not avaliable: %r",proc)
             self.packer.pack_uint(PROC_UNAVAIL)
             return self.packer.get_buf()
 
         cred = self.unpacker.unpack_auth()
         verf = self.unpacker.unpack_auth()
         try:
+            logger.debug("running proceduire: %r",proc)
             meth() # Unpack args, call turn_around(), pack reply
         except (EOFError, RPCGarbageArgs):
             # Too few or too many arguments
